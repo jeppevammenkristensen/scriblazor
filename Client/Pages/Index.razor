@@ -1,0 +1,101 @@
+﻿@page "/"
+@using System.Security.Cryptography
+@using Scriban.Runtime
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Quick templating with Scriban</PageTitle>
+
+<h1>Quick Scriban template</h1>
+
+<select value="3" @onchange="UpdateCounter">  
+    @foreach (var template in Enumerable.Range(0,9))
+    {
+        <option value=@template>@template</option>
+    }
+</select>
+
+<EditForm style="width: 85%" class="row g-3" Model="@template" OnValidSubmit="@Submit">
+    <div class="mb-3 col-12">
+        <InputTextArea style="height: 500px" class="form-control" @bind-Value="template.TemplateString"></InputTextArea>
+    </div>
+
+    @foreach (var item in template.Fields)
+    {
+        <div class="mb-3 col-3">
+            <label for="@item.Name" class="form-label">@item.Name</label>
+            <InputText class="form-control" id="@item.Name" @bind-Value="@item.Value"></InputText>
+        </div>
+    }
+    
+    <div class="col-12">
+        <button class="btn btn-primary" type="submit">Transform</button>
+    </div>
+    
+
+</EditForm>
+
+<textarea style="height: 500px; width:85%;" @bind="Parsed"></textarea>
+
+
+
+
+@code {
+
+    Template template = new();
+
+    public string? Parsed { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        template.WithNColumns(3);
+        await base.OnInitializedAsync();
+    }
+
+    public class Template
+    {
+        [Required]
+        public string TemplateString { get; set; } = string.Empty;
+
+        public List<Field> Fields { get; set; } = new List<Field>();
+
+        public void WithNColumns(int n)
+        {
+            var newFields =
+                Enumerable.Range(0, n).Select(x => new Field($"param{(x + 1).ToString()}")
+                {
+                    Value = Fields.ElementAtOrDefault(x)?.Value
+                }).ToList();
+            Fields = newFields;
+        }
+    }
+
+    public class Field
+    {
+        public Field(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; }
+        public string? Value { get; set; }
+    }
+
+    private async Task Submit()
+    {
+        var temp = Scriban.Template.Parse(template.TemplateString);
+        ScriptObject script = new ScriptObject();
+        foreach (var templateField in template.Fields)
+        {
+            script.Add(templateField.Name, templateField.Value);
+        }
+        Parsed = await temp.RenderAsync(script);
+
+    }
+
+    private void UpdateCounter(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int parsed))
+        this.template.WithNColumns(parsed);
+    }
+
+}
