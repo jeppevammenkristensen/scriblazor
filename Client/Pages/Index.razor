@@ -1,29 +1,36 @@
 ﻿@page "/"
+@inject IJSRuntime JS
+
 @using System.Security.Cryptography
 @using Scriban.Runtime
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.WebAssembly.Infrastructure
 
 <PageTitle>Quick templating with Scriban</PageTitle>
 
 <h1>Quick Scriban template</h1>
 
-<select value="3" @onchange="UpdateCounter">  
-    @foreach (var template in Enumerable.Range(0,9))
-    {
-        <option value=@template>@template</option>
-    }
-</select>
+<div class="mb-3">
+    <label class="form-label">Number of parameters</label>
+    <select class="form-select" value="3" @onchange="UpdateCounter">
+        @foreach (var template in Enumerable.Range(1, 9))
+        {
+            <option value=@template>@template</option>
+        }
+    </select>
+</div>
 
 <EditForm style="width: 85%" class="row g-3" Model="@template" OnValidSubmit="@Submit">
     <div class="mb-3 col-12">
         <InputTextArea style="height: 500px" class="form-control" @bind-Value="template.TemplateString"></InputTextArea>
+        <button type="button" data-bs-toggle="modal" data-bs-target="#addId"></button>
     </div>
 
     @foreach (var item in template.Fields)
     {
         <div class="mb-3 col-3">
             <label for="@item.Name" class="form-label">@item.Name</label>
-            <InputText class="form-control" id="@item.Name" @bind-Value="@item.Value"></InputText>
+            <InputText type="text" class="form-control" id="@item.Name" @bind-Value="item.Value" />
         </div>
     }
     
@@ -35,6 +42,30 @@
 </EditForm>
 
 <textarea style="height: 500px; width:85%;" @bind="Parsed"></textarea>
+
+<!-- Modal -->
+<div class="modal fade" id="addId" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Jeppe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input @bind="Name" class="form-select" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="Save">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 
 
@@ -97,5 +128,13 @@
         if (int.TryParse(e.Value?.ToString(), out int parsed))
         this.template.WithNColumns(parsed);
     }
+
+    private async Task Save(MouseEventArgs args)
+    {
+        await JS.InvokeVoidAsync("console.log", this.Name);
+        await JS.InvokeVoidAsync("closeModal", "addId");
+    }
+
+    public string? Name { get; set; }
 
 }
